@@ -12,7 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 // cors middleware
 app.use(
     cors({
-        origin: 'https://drf-tool.vercel.app', // Allow requests only from this URL
+        origin: 'https://drf-tool.netlify.app/', // Allow requests only from this URL
         methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed HTTP methods (optional)
         credentials: true, // Allow cookies (optional, if needed)
     })
