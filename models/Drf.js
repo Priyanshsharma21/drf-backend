@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const drfSchema = new mongoose.Schema({
+    title : {type : String, required: true},
     creator : {type : String, required: true},
     client: { type: String, required: true },
     project: { type: String, required: true },

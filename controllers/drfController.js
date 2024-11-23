@@ -9,7 +9,6 @@ cloudinary.config({
 
 // Controller to get all DRFs
 const getDrf = async (req, res) => {
-    console.log("Hello")
     try {
         const drfs = await Drf.find();
         res.status(200).json({ success: true, data: drfs });
@@ -40,6 +39,7 @@ const getDrfById = async (req, res) => {
 // Controller to create a new DRF
 const createDrf = async (req, res) => {
     const {
+        title,
         client,
         project,
         deliverable,
@@ -53,6 +53,7 @@ const createDrf = async (req, res) => {
 
     try {
         const newDrf = await Drf.create({
+            title,
             client,
             project,
             deliverable,
@@ -174,6 +175,7 @@ const deleteDrfsObject = async (req, res) => {
 const updateDrf = async (req, res) => {
     try {
         const {
+            title,
             client,
             project,
             deliverable,
@@ -195,6 +197,7 @@ const updateDrf = async (req, res) => {
         }
 
         // Update the DRF fields
+        drf.title = title || drf.title;
         drf.creator = creator || drf.creator;
         drf.client = client || drf.client;
         drf.project = project || drf.project;
@@ -314,22 +317,45 @@ const deleteDrfsSlide = async (req, res) => {
 };
 
 const searchDrf = async (req, res) => {
-    console.log("hellow")
-    const { q } = req.query; // Extract the `q` parameter from the query string
-    console.log(q)
-    if (!q) {
-        return res.status(400).json({ success: false, error: 'Query parameter is required' });
+    const { q, category } = req.query; // Extract `q` (search term) and `category` from query
+    if (!q || !category) {
+        return res.status(400).json({ success: false, error: 'Both q (search term) and category are required' });
     }
 
     try {
-        // Search for DRFs where the client field matches the query (case-insensitive)
-        const results = await Drf.find({ client: { $regex: q, $options: 'i' } });
+        let searchQuery = {};
+        
+        // Normalize the search term
+        const normalizedSearchTerm = q.toLowerCase();
 
+        // Build the search query based on the category
+        switch (category.toLowerCase()) {
+            case 'client':
+                searchQuery.client = { $regex: normalizedSearchTerm, $options: 'i' }; // Case-insensitive search for client
+                break;
+            case 'title':
+                searchQuery.title = { $regex: normalizedSearchTerm, $options: 'i' }; // Case-insensitive search for title
+                break;
+            case 'creator':
+                // If searching for creator, match the part before '@path-finder.io'
+                searchQuery.creator = { $regex: `^${normalizedSearchTerm}`, $options: 'i' }; // Start of email matching (case-insensitive)
+                break;
+            case 'project':
+                searchQuery.project = { $regex: normalizedSearchTerm, $options: 'i' }; // Case-insensitive search for project
+                break;
+            default:
+                return res.status(400).json({ success: false, error: 'Invalid category provided' });
+        }
+
+        // Perform the search query on the Drf model
+        const results = await Drf.find(searchQuery);
+
+        // If no results are found, return a 404
         if (results.length === 0) {
             return res.status(404).json({ success: false, message: 'No DRFs found matching the query' });
         }
 
-        // Return matching DRFs
+        // Return the results
         res.status(200).json({ success: true, data: results });
     } catch (error) {
         console.error('Error searching DRFs:', error.message);
